@@ -9,10 +9,14 @@
 // Windows Sockets 2
 // See: https://docs.microsoft.com/en-us/windows/win32/winsock/creating-a-basic-winsock-application
 #include <WinSock2.h>
+#include <WS2tcpip.h>
 #pragma comment(lib, "Ws2_32.lib")
 
 
 #include "to_send.hpp"
+
+
+#define USE_IPV6
 
 
 int main(void) {
@@ -37,7 +41,12 @@ int main(void) {
     }
 
     // Create a socket
-    SOCKET serverSock = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
+    SOCKET serverSock =
+#if defined(USE_IPV4)
+        WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
+#elif defined(USE_IPV6)
+        WSASocketW(AF_INET6, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
+#endif
     if (serverSock == INVALID_SOCKET) {
         WriteConsoleW(stdout, L"Failed to create socket\n", 24, NULL, NULL);
         WSACleanup();
@@ -46,11 +55,20 @@ int main(void) {
 
     // Bind the socket
     // The address is given here
+#if defined(USE_IPV4)
     SOCKADDR_IN addr = {
         AF_INET,
-        0xb822, /* Port 8888 */
+        0xb822 /* Port 8888 */,
         INADDR_ANY
     };
+#elif defined(USE_IPV6)
+    SOCKADDR_IN6 addr = {
+        AF_INET6,
+        0xb822, /* Port 8888 */
+        0,
+        in6addr_any
+    };
+#endif
     {
         int res = bind(serverSock, (SOCKADDR*)&addr, sizeof(addr));
         if (res == SOCKET_ERROR) {
