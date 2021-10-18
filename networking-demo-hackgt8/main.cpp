@@ -12,10 +12,7 @@
 #pragma comment(lib, "Ws2_32.lib")
 
 
-WSABUF toSend = {
-    13,
-    (CHAR*)"Hello there!\n"
-};
+#include "to_send.hpp"
 
 
 int main(void) {
