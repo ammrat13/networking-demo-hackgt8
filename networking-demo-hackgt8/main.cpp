@@ -12,6 +12,11 @@
 #pragma comment(lib, "Ws2_32.lib")
 
 
+WSABUF toSend = {
+    13,
+    (CHAR*)"Hello there!\n"
+};
+
 
 int main(void) {
 
@@ -29,15 +34,15 @@ int main(void) {
     {
         int res = WSAStartup(MAKEWORD(2,2), &wsaData);
         if (res != 0) {
-            WriteConsoleA(stdout, "Failed to initialize WinSock2\n", 30, NULL, NULL);
+            WriteConsoleW(stdout, L"Failed to initialize WinSock2\n", 30, NULL, NULL);
             return 2;
         }
     }
 
     // Create a socket
-    SOCKET serverSock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    SOCKET serverSock = WSASocketW(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
     if (serverSock == INVALID_SOCKET) {
-        WriteConsoleA(stdout, "Failed to create socket\n", 24, NULL, NULL);
+        WriteConsoleW(stdout, L"Failed to create socket\n", 24, NULL, NULL);
         WSACleanup();
         return 3;
     }
@@ -52,7 +57,7 @@ int main(void) {
     {
         int res = bind(serverSock, (SOCKADDR*)&addr, sizeof(addr));
         if (res == SOCKET_ERROR) {
-            WriteConsoleA(stdout, "Failed to bind socket\n", 22, NULL, NULL);
+            WriteConsoleW(stdout, L"Failed to bind socket\n", 22, NULL, NULL);
             closesocket(serverSock);
             WSACleanup();
             return 4;
@@ -63,7 +68,7 @@ int main(void) {
     {
         int res = listen(serverSock, SOMAXCONN);
         if (res == SOCKET_ERROR) {
-            WriteConsoleA(stdout, "Failed to listen on socket\n", 27, NULL, NULL);
+            WriteConsoleW(stdout, L"Failed to listen on socket\n", 27, NULL, NULL);
             closesocket(serverSock);
             WSACleanup();
             return 4;
@@ -76,23 +81,26 @@ int main(void) {
         WriteConsoleA(stdout, "Listening...\n", 13, NULL, NULL);
 
         // Accept a connection from the client
-        SOCKET clientSock = accept(serverSock, NULL, NULL);
+        SOCKET clientSock = WSAAccept(serverSock, NULL, NULL, NULL, NULL);
         if (clientSock == INVALID_SOCKET) {
-            WriteConsoleA(stdout, "Failed to accept client socket\n", 31, NULL, NULL);
-            WriteConsoleA(stdout, "Trying again\n\n", 14, NULL, NULL);
+            WriteConsoleW(stdout, L"Failed to accept client socket\n", 31, NULL, NULL);
+            WriteConsoleW(stdout, L"Trying again\n\n", 14, NULL, NULL);
             continue;
         }
 
-        WriteConsoleA(stdout, "Got connection\n", 15, NULL, NULL);
+        WriteConsoleW(stdout, L"Got connection\n", 15, NULL, NULL);
 
         // Send a string to the client
-        send(clientSock, "Hello there!\n", 13, 0);
+        {
+            DWORD res;
+            WSASend(clientSock, &toSend, 1, &res, 0, NULL, NULL);
+        }
 
         // Close the connection
         closesocket(clientSock);
 
         // Go to the next loop
-        WriteConsoleA(stdout, "\n", 2, NULL, NULL);
+        WriteConsoleW(stdout, L"\n", 2, NULL, NULL);
     }
 
     // Success
